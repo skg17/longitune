@@ -5,6 +5,7 @@ import os
 from youtube_search import YoutubeSearch
 import yt_dlp
 import eyed3
+import requests
 
 load_dotenv()
 
@@ -21,9 +22,10 @@ def get_track_metadata(track):
         'name': track['name'],
         'album': track['album']['name'],
         'track_number': track['track_number'],
-        'disc_number': track['disc_number'],
-        'release_date': track['album']['release_date'].split('-')[0],
-        'genre': sp.artist(track['artists'][0]['id'])['genres'][0].title()
+        'total_tracks': track['album']['total_tracks'],
+        'release_date': track['album']['release_date'],
+        'genre': sp.artist(track['artists'][0]['id'])['genres'][0].title(),
+        'cover': track['album']['images'][0]['url']
     }
 
 def get_playlist_tracks(playlist_id):
@@ -55,6 +57,24 @@ def download_track(url, path):
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         ydl.download([url])
 
+def tag_metadata(path, metadata):
+    audiofile = eyed3.load(path.replace('%(ext)s', 'mp3'))
+
+    if audiofile.tag is None:
+        audiofile.initTag()
+
+    audiofile.tag.artist = metadata['artist']
+    audiofile.tag.album_artist = metadata['artist']
+    audiofile.tag.album = metadata['album']
+    audiofile.tag.title = metadata['name']
+    audiofile.tag.genre = metadata['genre']
+    audiofile.tag.release_date = metadata['release_date']
+    audiofile.tag.track_num = (metadata['track_number'], metadata['total_tracks'])
+
+    audiofile.tag.images.set(3, requests.get(metadata['cover']).content, "image/jpeg")
+
+    audiofile.tag.save()
+
 tracks = get_playlist_tracks(playlist_id)
 
 for i in range(len(tracks)):
@@ -62,7 +82,6 @@ for i in range(len(tracks)):
     song = metadata['name']
     album = metadata['album']
     artist = metadata['artist']
-    cover = tracks[i]['track']['album']['images'][0]['url']
     path = f'./downloads/{artist}/{album}/{song}.%(ext)s'
 
     print(f'Processing Track {i+1} of {len(tracks)}: {artist} - {song}, {album}')
@@ -72,3 +91,9 @@ for i in range(len(tracks)):
     url = "https://www.youtube.com" + results[0]['url_suffix']
 
     download_track(url, path)
+
+    print('Download Complete!')
+
+    tag_metadata(path, metadata)
+
+    print('Metadata Tagging Complete!\n')
