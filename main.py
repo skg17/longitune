@@ -3,6 +3,7 @@ from spotipy.oauth2 import SpotifyClientCredentials
 from dotenv import load_dotenv
 import os
 from youtube_search import YoutubeSearch
+import yt_dlp
 
 load_dotenv()
 
@@ -29,10 +30,26 @@ for i in range(len(tracks)):
     artist = tracks[i]['track']['artists'][0]['name']
     cover = tracks[i]['track']['album']['images'][0]['url']
 
-    print(f'{artist} - {song}, {album} | {cover}')
+    print(f'Processing Track {i} of {len(tracks)}: {artist} - {song}, {album}')
 
     search_term = tracks[i]['track']['name'] + " " + tracks[i]['track']['artists'][0]['name']
     results = YoutubeSearch(search_term, max_results=10).to_dict()
-    url = "https://youtube.com" + results[0]['url_suffix']
+    url = "https://www.youtube.com" + results[0]['url_suffix']
 
-    print(url)
+    ydl_opts = {
+        'format': 'bestaudio/best',
+        'extractaudio': True,
+        'audioformat': 'mp3',
+        'outtmpl': f'./downloads/{artist}/{album}/{song}.%(ext)s',
+        'noplaylist': True,
+        'postprocessors': [{
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': 'mp3',
+            'preferredquality': '192',
+        }],
+        'quiet': True,
+        'remote_components': ['ejs:github']
+    }
+
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        ydl.download([url])
