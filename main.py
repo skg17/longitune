@@ -2,6 +2,7 @@ import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
 from dotenv import load_dotenv
 import os
+from youtube_search import YoutubeSearch
 
 load_dotenv()
 
@@ -29,3 +30,9 @@ for i in range(len(tracks)):
     cover = tracks[i]['track']['album']['images'][0]['url']
 
     print(f'{artist} - {song}, {album} | {cover}')
+
+    search_term = tracks[i]['track']['name'] + " " + tracks[i]['track']['artists'][0]['name']
+    results = YoutubeSearch(search_term, max_results=10).to_dict()
+    url = "https://youtube.com" + results[0]['url_suffix']
+
+    print(url)
