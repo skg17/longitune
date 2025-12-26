@@ -17,6 +17,11 @@ client_credentials_manager = SpotifyClientCredentials(client_id = cid, client_se
 sp = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
 
 def get_track_metadata(track):
+    try:
+        genre = sp.artist(track['artists'][0]['id'])['genres'][0].title()
+    except:
+        genre = None
+
     return {
         'artist': track['artists'][0]['name'],
         'name': track['name'],
@@ -24,7 +29,7 @@ def get_track_metadata(track):
         'track_number': track['track_number'],
         'total_tracks': track['album']['total_tracks'],
         'release_date': track['album']['release_date'],
-        'genre': sp.artist(track['artists'][0]['id'])['genres'][0].title(),
+        'genre': genre,
         'cover': track['album']['images'][0]['url']
     }
 
