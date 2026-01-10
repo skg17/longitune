@@ -11,7 +11,7 @@ load_dotenv()
 
 cid = os.getenv('SPOTIPY_CLIENT_ID')
 secret = os.getenv('SPOTIPY_CLIENT_SECRET')
-playlist_id = os.getenv('SPOTIFY_PLAYLIST_ID')
+playlist_id = input("Please enter a link to the Spotify playlist: ")
 
 client_credentials_manager = SpotifyClientCredentials(client_id = cid, client_secret = secret)
 sp = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
@@ -63,7 +63,7 @@ def download_track(url, path):
         ydl.download([url])
 
 def tag_metadata(path, metadata):
-    audiofile = eyed3.load(path.replace('%(ext)s', 'mp3'))
+    audiofile = eyed3.load(path)
 
     if audiofile.tag is None:
         audiofile.initTag()
@@ -80,25 +80,37 @@ def tag_metadata(path, metadata):
 
     audiofile.tag.save()
 
+def format_name(name):
+    return name.replace("/", "_")
+
 tracks = get_playlist_tracks(playlist_id)
 
-for i in range(len(tracks)):
-    metadata = get_track_metadata(tracks[i]['track'])
-    song = metadata['name']
-    album = metadata['album']
-    artist = metadata['artist']
-    path = f'./downloads/{artist}/{album}/{song}.%(ext)s'
+playlist_name = sp.playlist(playlist_id)['name']
 
-    print(f'Processing Track {i+1} of {len(tracks)}: {artist} - {song}, {album}')
+with (open(f'downloads/{playlist_name}.m3u', 'a+') as playlist):
+    for i in range(len(tracks)):
+        metadata = get_track_metadata(tracks[i]['track'])
+        song = metadata['name']
+        album = metadata['album']
+        artist = metadata['artist']
+        path = f'./downloads/{format_name(artist)}/{format_name(album)}/{format_name(song)}.mp3'
 
-    search_term = f'{song} {artist}'
-    results = YoutubeSearch(search_term, max_results=10).to_dict()
-    url = "https://www.youtube.com" + results[0]['url_suffix']
+        print(f'Processing Track {i+1} of {len(tracks)}: {artist} - {song}, {album}')
 
-    download_track(url, path)
+        if path.replace('./downloads/', '') not in playlist.read() and not os.path.exists(path):
+            search_term = f'{song} {artist}'
+            results = YoutubeSearch(search_term, max_results=10).to_dict()
+            url = "https://www.youtube.com" + results[0]['url_suffix']
 
-    print('Download Complete!')
+            download_track(url, path.replace('.mp3', ''))
+            print('Download complete!')
 
-    tag_metadata(path, metadata)
+            tag_metadata(path, metadata)
+            print('Metadata tagging complete!')
 
-    print('Metadata Tagging Complete!\n')
+            path = path.replace('./downloads/', '')
+            playlist.write(f'{path}\n')
+            print('Added song to playlist!\n')
+
+        else:
+            print('Track already exists!\n')
