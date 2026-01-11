@@ -86,8 +86,11 @@ def format_name(name):
 tracks = get_playlist_tracks(playlist_id)
 
 playlist_name = sp.playlist(playlist_id)['name']
+playlist_owner = sp.playlist(playlist_id)['owner']['display_name']
 
 with (open(f'downloads/{playlist_name}.m3u', 'a+') as playlist):
+    print(f'\nProcessing playlist {playlist_name} by {playlist_owner}\n')
+
     for i in range(len(tracks)):
         metadata = get_track_metadata(tracks[i]['track'])
         song = metadata['name']
